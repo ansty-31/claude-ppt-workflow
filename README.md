@@ -1,55 +1,62 @@
 # Claude PPT Workflow
 
-AI 辅助制作演示文稿的实战经验与工具集
+用 Claude 辅助生成 PPTX 的工作流与经验总结
 
-## 项目背景
+## 核心理念
 
-在 SEA-Loop 中期答辩 PPT 制作过程中，我们尝试了多种 AI 辅助方案，投入约 $15–20 美元后总结出一套相对高效的工作流。本项目记录这些经验，避免后来者重复踩坑。
+基于真实项目的试错（22 页学术答辩 PPT，总投入 ≥$50，最后一天约 $30），得出推荐流程：
 
-## 推荐工作流
+**三阶段工作流：**
 
-```
-前端审美模型（生成）→ 人工/模型微调 → 生图模型（精修）
-     ↓                    ↓                  ↓
-  Claude Opus       python-pptx 调整    DALL-E / Midjourney
-  结构化内容         字号/布局/数据      最终视觉呈现
-```
+1. **调教前端审美好的模型生成 pptx**（给它设计规范/参考样张，生成结构化代码或文件）
+2. **人工或模型微调**（不在字体渲染问题上死磕）
+3. **交给生图模型精修**（逐页生成视觉最终版，结果为图片，不可编辑，按需取舍）
 
-### 为什么不是"全程 Claude 生成可编辑 PPTX"？
+### 为什么不全程用 Claude 生成可编辑 PPTX？
 
-1. **审美天花板**：Claude 擅长结构化内容，但配色/排版的审美判断不如前端优化的多模态模型
-2. **Token 成本**：22 页 PPT 完整生成 + 3 轮迭代 ≈ 175K–300K tokens（$2–4），且易因大文件/并行冲突返工
-3. **字体渲染坑**：python-pptx 生成的 PPTX 在 PowerPoint/LibreOffice 上渲染不一致，光晕/阴影效果预览困难
+实战踩过的坑：
+- **上下文爆炸**：让子代理读 1.3MB SVG 设计稿 → 崩溃（发生 2 次）
+- **轮次浪费**：子代理花 30 轮反复"审查"已有代码，到达限制仍未完成
+- **字体渲染不一致**：python-pptx 生成的 PPTX 在 PowerPoint/LibreOffice 上显示不同
+- **并行协调成本高**：多个子代理修改共享模块 → 冲突频繁
 
-### 推荐的三阶段方案
+---
 
-#### 阶段 1：内容生成（前端审美模型）
+## 三阶段工作流详解
+
+### 阶段 1：内容生成（前端审美模型）
+
 **工具**：Claude Opus / GPT-4 / Gemini 1.5 Pro  
-**产出**：带占位符的 Markdown 大纲 + 关键数据
+**产出**：结构化大纲（Markdown 或 YAML）+ 关键数据
 
 ```markdown
 # Slide 1: 封面
-- 标题：SEA-Loop 自主浮标系统
-- 副标题：中期答辩
-- 背景：海洋场景（待配图）
+- 标题：项目名称
+- 副标题：答辩类型
+- 背景：场景配图（待生成）
 
 # Slide 2: 问题陈述
-- 痛点 1：传统浮标需要船只维护，成本高
-- 痛点 2：缺乏长期自主观测能力
-- 数据：年均维护成本 $50K，可用率 <60%
+- 痛点 1：现状问题描述
+- 痛点 2：缺失能力
+- 数据：关键指标
 ```
 
 **优势**：
 - 模型专注于内容逻辑，不陷入像素级排版
 - Markdown 便于版本控制和人工审校
-- 成本：~5K tokens
+- 成本低
 
-#### 阶段 2：布局与数据可视化（python-pptx + 人工/模型）
-**工具**：python-pptx + Claude Sonnet（微调助手）  
+---
+
+### 阶段 2：布局与数据可视化（python-pptx + 人工/模型）
+
+**工具**：python-pptx + Claude（仅用于微调具体问题）  
 **产出**：可编辑的 PPTX，图表/数据准确
 
+**推荐做法：模板化生成**
+
 ```python
-# 模板化生成，避免逐页调用 Claude
+# 用 Jinja2 模板 + 数据驱动，避免逐页调用 Claude
 from pptx import Presentation
 from jinja2 import Template
 
@@ -57,48 +64,114 @@ template = Template("""
 {% for slide in slides %}
 def slide_{{ loop.index }}(prs):
     s = prs.slides.add_slide(prs.slide_layouts[5])
-    title = s.shapes.title
-    title.text = "{{ slide.title }}"
-    # ... 数据驱动的图表生成
+    # 标题、内容、图表...
 {% endfor %}
 """)
+
+code = template.render(slides=data["slides"])
+exec(code)
+prs.save("draft.pptx")
 ```
 
-**人工介入点**：
-- 调整字号、间距（用 `imgcheck` 或肉眼检查溢出）
-- 修正图表坐标偏移
-- 验证数据准确性（防止模型幻觉）
+**人工检查点**：
+- 字号溢出：用 `tools/lines.py` 检测孤字、越界
+- 图表坐标：确认 X/Y 轴标签不重叠
+- 数据准确性：对照原始数据源，防止模型幻觉
 
-**模型辅助**：
+**模型辅助（仅在遇到具体问题时）**：
+
 ```bash
-# 只让 Claude 改具体问题，不要"全盘生成"
-claude: "slides_hw.py 的 p6 pool 函数，GIF 宽度改为 8.0 英寸，步骤字号 22/18"
+# ✅ 明确具体问题
+claude: "slides_hw.py 的 pool() 函数，第 3 个要点文字溢出，
+        请将 textbox 宽度从 3.2 改为 3.5 英寸，字号从 17 降到 16"
+
+# ❌ 不要让 Claude 重新生成整页
+claude: "优化 slide 8 的布局"
 ```
 
-**成本**：~20K–40K tokens（如果避开大文件陷阱）
+---
 
-#### 阶段 3：视觉精修（生图模型）
-**工具**：DALL-E 3 / Midjourney / Stable Diffusion  
+### 阶段 3：视觉精修（生图模型）
+
+**工具**：生图模型（如 Stable Diffusion 等）  
 **产出**：高质量 PNG/PDF，用于最终投影
 
+**为什么需要这一步？**
+
+python-pptx 的字体渲染问题：
+- 同一 PPTX 在不同软件（PowerPoint / LibreOffice / Keynote）显示不同
+- 光晕、阴影、渐变效果在某些环境不生效
+- 中文字体需手动设置 `a:ea` 属性，否则 fallback 到宋体
+
+生图模型可以绕过这些兼容性问题。
+
+**工作流**：
+
 ```bash
-# 每页截图 → 提示词工程 → 重新生图
+# 每页提取布局描述 → 生成提示词 → 调用生图 API
 for i in $(seq 1 16); do
-  # 提取当前页的布局描述
-  python3 extract_layout.py deck.pptx $i > prompt_$i.txt
-  
+  python3 tools/extract_layout.py draft.pptx $i > prompt_$i.txt
   # 调用生图 API
-  curl -X POST https://api.openai.com/v1/images/generations \
-    -d "prompt=$(cat prompt_$i.txt), professional presentation style, 16:9"
 done
 ```
 
-**优势**：
-- 生图模型的字体渲染、光影效果远超 python-pptx
-- 可以"参考原版 + 微调提示词"，而非从零设计
-- 不受 PowerPoint 兼容性困扰
+**人工审校**：
+- 文字准确性（生图模型可能改变数字/标点）
+- 品牌一致性（logo、配色）
+- 数据图表（数值是否一致）
 
-**成本**：~$0.04/图 × 16 页 = $0.64
+---
+
+## 核心踩坑总结
+
+### 1. 不要让 Claude 直接读大文件
+
+**反例**：让子代理读 1.3MB SVG → 上下文爆炸崩溃（本项目发生 2 次）
+
+**正解**：
+```bash
+# 预提取关键信息到轻量文本文件（5 分钟人工）
+python3 tools/extract_coords.py design.svg > coords.txt  # 4KB
+```
+
+---
+
+### 2. 不要让子代理"审查代码后再补齐"
+
+会让子代理花 5–10 轮反复 Read 已改文件，token 浪费且容易超轮次限制。
+
+**正解**：明确**单个函数**的改动点，禁止"先看再说"。
+
+---
+
+### 3. 验证时必须构建完整 deck
+
+**反例**：只构建单页 → 页码、隐藏页数错误
+
+**正解**：完整构建 22 页，然后用 `lines.py deck.pdf 8 10 11` 只检查目标页
+
+---
+
+### 4. 中文字体映射
+
+python-pptx 的 `font.name = "字体"` 只设置 Latin 槽，中文需显式设置 East Asian：
+
+```python
+from pptx.oxml.ns import qn
+run._element.rPr.rFonts.set(qn('a:ea'), 'Noto Sans CJK SC')
+```
+
+---
+
+### 5. LibreOffice 预览 ≠ PowerPoint 渲染
+
+LibreOffice 导出 PDF 时会忽略某些效果（glow、阴影）。验收时必须在 PowerPoint 中打开 PPTX。
+
+---
+
+### 6. 单字孤行问题（中文特有）
+
+字号放大后容易出现末行只剩一个字"入""准"等。需要在标点处手动断行或调整 textbox 宽度。
 
 ---
 
@@ -108,18 +181,17 @@ done
 claude-ppt-workflow/
 ├── README.md                    # 本文件
 ├── docs/
-│   ├── pitfalls.md             # 坑点详解（token 陷阱、字体问题等）
+│   ├── pitfalls.md             # 详细坑点与省 token 指南
 │   ├── workflow-guide.md       # 三阶段工作流详解
-│   └── cost-analysis.md        # 成本对比（全程 Claude vs 混合方案）
+│   └── cost-analysis.md        # 成本分析（定性）
 ├── tools/
-│   ├── extract_coords.py       # 从 SVG 提取坐标（避免读大文件）
+│   ├── extract_coords.py       # 从 SVG 提取坐标
 │   ├── lines.py                # 孤字/越界/重叠检查
-│   ├── check_layout.py         # 布局审计
-│   └── imgcheck_batch.sh       # 批量图片检查
+│   └── bfull.py                # 完整 deck 构建模板
 ├── skills/
-│   └── ppt-audit/              # Claude Code Skill：PPT 验收清单
+│   └── ppt-audit/              # Claude Code Skill：PPT 验收
 └── examples/
-    └── sea-loop-case-study.md  # 真实案例：中期答辩 PPT 制作记录
+    └── sea-loop-case-study.md  # 真实案例分析
 ```
 
 ---
@@ -127,94 +199,112 @@ claude-ppt-workflow/
 ## 快速开始
 
 ### 1. 安装依赖
+
 ```bash
 pip install python-pptx jinja2 pillow
 ```
 
 ### 2. 生成你的第一个 PPT
+
 ```bash
-# 从 Markdown 大纲生成
-python3 tools/md2pptx.py outline.md -o draft.pptx
+# 从 Markdown 大纲生成（需自行实现 md2pptx）
+python3 generate_from_outline.py outline.md -o draft.pptx
 
-# 审计排版问题
+# 审计排版问题（需先转 PDF）
+soffice --headless --convert-to pdf draft.pptx
 python3 tools/lines.py draft.pdf 1 2 3
-
-# （可选）批量生图精修
-bash tools/render_with_dalle.sh draft.pptx output/
 ```
 
-### 3. 在 Claude Code 中使用 Skill
-```bash
-# 复制 skill 到 Claude 项目
-cp -r skills/ppt-audit ~/.claude/skills/
+### 3. 使用工具
 
-# 在 Claude Code 中调用
-/ppt-audit deck.pptx
+**检查孤字/重叠/越界**：
+```bash
+python3 tools/lines.py deck.pdf 8 10 11
+# 输出示例：
+# p08 ORPHAN '入'
+# p10 OVER '传感器' ~ '接口' (12x8)
+# p11 clean
+```
+
+**提取 SVG 坐标**（避免让 Claude 读大文件）：
+```bash
+python3 tools/extract_coords.py design.svg > coords.txt
 ```
 
 ---
 
-## 成本对比
+## Token 省钱清单
 
-| 方案 | Token 消耗 | 美元成本 | 质量 | 耗时 |
-|-----|-----------|---------|-----|-----|
-| 全程 Claude 生成可编辑 PPTX | 175K–300K | $2–4 | 6/10 | 4–6 小时 |
-| **推荐：三阶段混合** | 25K–45K | $0.5–1 + $0.64 图 | 8/10 | 2–3 小时 |
-| 纯人工 + 设计师 | 0 | $100–300 | 9/10 | 1–2 天 |
-
-**结论**：三阶段方案在成本、质量、效率上找到最佳平衡点。
+1. **预处理大文件**：>200KB 的 SVG/PDF，先提取关键信息
+2. **模板化生成**：用 Jinja2 + 数据驱动，不要逐页调用 Claude
+3. **明确任务边界**：子代理任务 = "改这 5 行代码"，不是"审查后决定"
+4. **验证逻辑分离**：语法检查（py_compile）每次改动都做，视觉渲染（PDF）只做一次
+5. **工具路径查询**：用 `which` 查询工具路径，不要让代理猜测
+6. **并行任务隔离**：并行子代理不能共享依赖文件（theme.py / charts.py）
 
 ---
 
 ## 真实案例
 
-### SEA-Loop 中期答辩 G2 版尝试
+本项目源于一个 22 页学术答辩 PPT 的制作：
+- **成本**：≥$50（最后一天约 $30）
+- **有效产出**：16 页主讲 + 6 页备答的可编辑 PPTX
+- **失败尝试**：投影版因代理崩溃、轮次超限而终止
 
-**需求**：22 页可编辑 PPTX，字号放大（34–36pt 标题），微光晕保护文字，按设计稿精确对齐。
-
-**实际消耗**：
-- 主会话：56K tokens
-- 3 个子代理：187K tokens（2 个因读 1.3MB SVG 崩溃）
-- 总计：~243K tokens ≈ $3.5
-
-**有效输出**：只有 3/16 页通过验证（slides_end.py 的 p14–p16）
-
-**失败原因**：
-1. 子代理读了设计稿 SVG（1.3MB）→ 上下文爆炸
-2. 并行 3 个 builder 改同一套代码 → 协调成本高
-3. PowerPoint glow 效果在 LibreOffice 预览时不可见 → 返工
-
-**教训**：见 `docs/pitfalls.md`
+详见 `examples/sea-loop-case-study.md`。
 
 ---
 
-## 贡献指南
+## 工具使用
 
-欢迎补充：
-- 更多语言的模板（目前只有中文案例）
-- 其他工具集成（Figma → PPTX、Canva API 等）
-- 成本优化技巧
+### lines.py - 排版审计
 
-提交 PR 前请确保：
-1. 代码通过 `ruff check`
-2. 文档用 `markdownlint` 校验
-3. 示例 PPTX 文件 <5MB（用 Git LFS 或外链）
+```bash
+python3 tools/lines.py deck.pdf 1 2 3
+# 检查第 1、2、3 页的：
+# - ORPHAN: 单字孤行（中文）
+# - EDGE: 越界文本
+# - OVER: 重叠文本框
+```
+
+### bfull.py - 构建脚本模板
+
+```bash
+python3 tools/bfull.py --build-dir /path/to/build --output /path/to/output
+# 完整构建 deck（主讲页 + 备答页 + 隐藏页）
+# 自动转 PDF + 渲染 PNG
+```
+
+### ppt-audit - 验收 Skill
+
+```bash
+# 在 Claude Code 中调用
+python3 skills/ppt-audit/ppt-audit deck.pptx
+# 检查：页数、隐藏页、字体、单字孤行
+```
+
+---
+
+## 适用场景
+
+**推荐使用本工作流**：
+- 技术答辩、学术汇报（数据图表为主）
+- 需要频繁更新数据的报告
+- 批量生成相似结构的 PPT（课程系列、月报）
+
+**不推荐**：
+- 简单文字 PPT（<10 页，无图表）→ 直接用 Canva 模板
+- 极致视觉要求（品牌发布会）→ 专业设计师
+- 一次性需求 + 不需要修改 → 在线工具（Gamma.ai 等）
 
 ---
 
 ## 许可证
 
-MIT License
+MIT License - 详见 LICENSE 文件
 
 ---
 
 ## 致谢
 
-本项目的经验来自 SEA-Loop 团队在实战中的试错，特别感谢：
-- 用户 ansty 提供的真实需求与成本约束
-- Claude Code 的子代理机制（虽然踩了坑，但验证了并行协作的可能性）
-- python-pptx 社区的文档与示例
-
----
-
-**如果这个项目帮你省了钱或时间，请给个 ⭐️**
+本项目的经验来自真实项目的试错。感谢 python-pptx 社区的文档与示例。

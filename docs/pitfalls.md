@@ -1,4 +1,4 @@
-# Claude 制作 PPT：坑点与省 token 指南
+# Claude 制作 PPT：坑点与省钱指南
 
 ## 一、核心原则
 
@@ -59,7 +59,7 @@ lines.py / check_layout 等审计脚本依赖正确的页码索引。
 
 ---
 
-### 4. 图片检查用 imgcheck / ds，不要 Read 图片
+### 4. 图片检查用视觉模型，不要 Read 图片
 **反例**：
 ```python
 Read(file_path="p-08.png")  # ❌ 二进制图片进上下文
@@ -67,10 +67,9 @@ Read(file_path="p-08.png")  # ❌ 二进制图片进上下文
 
 **正解**：
 ```bash
-imgcheck p-08.png  # ✓ 调用 ds（DeepSeek）OCR + 布局分析
+# 调用本地 imgcheck 脚本（通过视觉模型做 OCR + 布局分析）
+imgcheck p-08.png
 ```
-
-用户环境中 `imgcheck` 是 `/home/ansty/.local/bin/imgcheck`，会调用 DeepSeek API。
 
 ---
 
@@ -140,7 +139,7 @@ grep ORPHAN /tmp/lines_out.txt  # ✓ 只看关键行
 
 ---
 
-### 3. imgcheck 的批量模式
+### 3. 批量图片检查
 如果要对比多页：
 ```bash
 for i in 08 10 11 12; do
@@ -149,8 +148,6 @@ done
 wait
 grep -h "问题\|overlaps\|orphan" /tmp/check_*.txt
 ```
-
-单次 imgcheck 调用约消耗 DeepSeek 2K tokens（视图片复杂度）。
 
 ---
 
@@ -275,43 +272,7 @@ imgcheck p-10.png > /tmp/c10.txt
 
 ---
 
-## 七、成本估算
-
-### 单次完整流程（22 页 PPT，3 轮迭代）
-| 环节 | 消耗 | 备注 |
-|-----|-----|-----|
-| 主调度阅读需求、代码、handoff | 30K tokens | 一次性 |
-| 3 个并行 builder（各 30K） | 90K tokens | slides_hw/algo/end |
-| 返工 2 轮（修孤字、重叠） | 40K tokens | SendMessage 续接 |
-| 验收（lines.py + imgcheck × 5） | 15K tokens | 最终检查 |
-| **总计** | **~175K tokens** | 按 claude-sonnet-4-6 |
-
-**优化空间**：
-- 预提取坐标 → 省 60K（避免读 SVG）
-- 禁止"审查再补齐" → 省 20K（减少无效 Read）
-- 一次性构建验收 → 省 10K（不重复渲染）
-- **优化后** | **~85K tokens** | 降低 51% |
-
----
-
-## 八、本次 G2 任务的实际消耗
-
-- **总消耗**：~104K tokens（主会话）+ 187K tokens（3 个子代理，其中 2 个崩溃）
-- **有效输出**：只有 slides_end.py (p14–p16) 通过验证
-- **浪费原因**：
-  1. 子代理读了 1.3MB SVG → 崩溃 2 次
-  2. slides_end 子代理达到 30 轮限制 → 人工接手
-  3. 未预先提取坐标 → 重复试错
-
-**如果重来**：
-1. 第一步：`python3 extract_coords.py teacher_*.svg > teacher_*.txt`（5 分钟人工）
-2. 禁止子代理读 SVG，只给 `.txt`
-3. 单个子代理范围：1 个 slides_*.py 文件，≤5 个函数
-4. 预期消耗：60K tokens，2 小时完成
-
----
-
-## 九、推荐工作流
+## 七、推荐工作流
 
 ```
 1. 人工：提取大文件关键信息（SVG 坐标、图片 OCR）→ 轻量 .txt
@@ -323,7 +284,7 @@ imgcheck p-10.png > /tmp/c10.txt
 
 ---
 
-## 十、不要做的事
+## 八、不要做的事
 
 1. ❌ 让 Claude 从零"设计" PPT 配色 / 布局
    - 现有模板 + 参数化改动 >> 从头生成

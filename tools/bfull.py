@@ -1,15 +1,20 @@
-"""Full G2 deck to a temp dir: python3 /tmp/g2/bfull.py <outdir>"""
+"""Full G2 deck to a temp dir: python3 bfull.py --build-dir <path> --output <outdir>"""
+import argparse
 import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, "/home/ansty/3D_learing/SEA-loop/reports/中期答辩_20261104/build")
-import theme  # noqa: E402
+parser = argparse.ArgumentParser(description="Build full G2 deck to a temp directory")
+parser.add_argument("--build-dir", required=True, help="Path to build directory containing theme.py and build.py")
+parser.add_argument("--output", required=True, help="Output directory for generated files")
+args = parser.parse_args()
 
+sys.path.insert(0, args.build_dir)
+import theme  # noqa: E402
 theme.G2 = True
 import build  # noqa: E402
 
-out = Path(sys.argv[1])
+out = Path(args.output)
 out.mkdir(parents=True, exist_ok=True)
 build.LIGHT.update({"TXT": "17252B", "SUB": "303C42", "DIM": "303C42", "ACC": "214C40"})
 build.use_light_palette()

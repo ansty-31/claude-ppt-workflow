@@ -1,6 +1,14 @@
 """Per-page text line audit from the rendered PDF: overlaps, off-page, orphan lines."""
+import argparse
 import re, subprocess, sys, html
-pdf = sys.argv[1]; pages = [int(p) for p in sys.argv[2:]] or None
+
+parser = argparse.ArgumentParser(description="Audit text lines in rendered PDF pages")
+parser.add_argument("pdf", help="Path to PDF file")
+parser.add_argument("pages", nargs="*", type=int, help="Page numbers to check (default: all)")
+args = parser.parse_args()
+
+pdf = args.pdf
+pages = args.pages or None
 x = subprocess.run(["pdftotext", "-bbox-layout", pdf, "-"], capture_output=True, text=True).stdout
 out = []
 for pi, pg in enumerate(re.findall(r"<page.*?</page>", x, re.S), 1):
@@ -18,5 +26,4 @@ for pi, pg in enumerate(re.findall(r"<page.*?</page>", x, re.S), 1):
             ix = min(a[3], b[3]) - max(a[1], b[1]); iy = min(a[4], b[4]) - max(a[2], b[2])
             if ix > 1 and iy > 2:
                 out.append(f"p{pi:02d} OVER {a[5][:20]!r} ~ {b[5][:20]!r} ({ix:.0f}x{iy:.0f})")
-    if "--dump" in sys.argv[0:0]: pass
 print("\n".join(out) or "clean")
