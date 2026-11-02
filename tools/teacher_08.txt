@@ -1,0 +1,65 @@
+x=73 y=38.24 size=10.5 wt=700 fill=#303C42 anchor=start | 西安交通大学
+x=157 y=37.8 size=10 wt=400 fill=#303C42 anchor=start | ·  大创中期答辩
+x=558 y=38.68 size=11 wt=400 fill=#303C42 anchor=start | 项目
+x=621 y=38.68 size=11 wt=400 fill=#303C42 anchor=start | 机械
+x=684 y=38.68 size=11 wt=700 fill=#17252B anchor=start | 电控
+x=747 y=38.68 size=11 wt=400 fill=#303C42 anchor=start | 算法
+x=810 y=38.68 size=11 wt=400 fill=#303C42 anchor=start | 进展
+x=923 y=38.68 size=11 wt=400 fill=#303C42 anchor=end | 08
+x=58 y=90.44 size=13 wt=700 fill=#214C40 anchor=start | 电控 · 控制
+x=58 y=135.92000000000002 size=34 wt=700 fill=#17252B anchor=start | 状态机编排任务，串级控制把浮标稳在目标深度
+x=123.0 y=192.28 size=18.5 wt=500 fill=#303C42 anchor=middle | 准备与校零
+x=195 y=208.72 size=19 wt=500 fill=#214C40 anchor=middle | ›
+x=267.0 y=192.28 size=18.5 wt=700 fill=#17252B anchor=middle | 下潜
+x=267.0 y=217.72 size=19 wt=700 fill=#17252B anchor=middle | 1.50 m
+x=339 y=208.72 size=19 wt=500 fill=#214C40 anchor=middle | ›
+x=411.0 y=192.28 size=18.5 wt=500 fill=#303C42 anchor=middle | 驻留
+x=411.0 y=217.72 size=19 wt=500 fill=#303C42 anchor=middle | 30 s
+x=483 y=208.72 size=19 wt=500 fill=#214C40 anchor=middle | ›
+x=555.0 y=192.28 size=18.5 wt=700 fill=#17252B anchor=middle | 上浮
+x=555.0 y=217.72 size=19 wt=700 fill=#17252B anchor=middle | 0.95 m
+x=627 y=208.72 size=19 wt=500 fill=#214C40 anchor=middle | ›
+x=699.0 y=192.28 size=18.5 wt=500 fill=#303C42 anchor=middle | 驻留
+x=699.0 y=217.72 size=19 wt=500 fill=#303C42 anchor=middle | 30 s
+x=771 y=208.72 size=19 wt=500 fill=#214C40 anchor=middle | ›
+x=843.0 y=192.28 size=18.5 wt=500 fill=#303C42 anchor=middle | 结束保持
+x=843.0 y=217.72 size=19 wt=500 fill=#303C42 anchor=middle | 1.00 m
+x=58 y=262.96 size=17 wt=500 fill=#214C40 anchor=start | ↺  完成两次完整剖面后进入结束保持，并重新打开蓝牙
+x=58 y=301.36 size=22 wt=700 fill=#17252B anchor=start | 串级控制
+x=175.5 y=333.6 size=20 wt=700 fill=#17252B anchor=middle | 深度外环
+x=175.5 y=356.52 size=16.5 wt=500 fill=#303C42 anchor=middle | 深度误差 → 目标圈数
+x=175.5 y=374.8 size=10 wt=500 fill=#214C40 anchor=middle | ↓
+x=175.5 y=393.6 size=20 wt=700 fill=#17252B anchor=middle | 圈数内环 PD
+x=175.5 y=416.52 size=16.5 wt=500 fill=#303C42 anchor=middle | 圈数误差 → 力矩电流
+x=175.5 y=434.8 size=10 wt=500 fill=#214C40 anchor=middle | ↓
+x=175.5 y=453.6 size=20 wt=700 fill=#17252B anchor=middle | 电流输出
+x=175.5 y=476.52 size=16.5 wt=500 fill=#303C42 anchor=middle | 限斜率 · 物理 / 软限位
+x=330 y=355.84 size=18 wt=700 fill=#303C42 anchor=start | 反馈
+x=330 y=387.96 size=17 wt=500 fill=#303C42 anchor=start | MS5837 深度
+x=330 y=414.96 size=17 wt=500 fill=#303C42 anchor=start | 电机编码圈数
+x=526 y=309.32 size=14 wt=500 fill=#303C42 anchor=start | 实测深度
+x=650 y=309.32 size=14 wt=500 fill=#303C42 anchor=start | 下潜目标 1.50 m
+x=800 y=309.32 size=14 wt=500 fill=#303C42 anchor=start | 上浮目标 0.95 m
+x=526 y=455.2 size=15 wt=500 fill=#E5DED2 anchor=end | 0.4
+x=526 y=455.2 size=15 wt=500 fill=#303C42 anchor=end | 0.4
+x=526 y=426.45 size=15 wt=500 fill=#303C42 anchor=end | 0.8
+x=526 y=397.7 size=15 wt=500 fill=#303C42 anchor=end | 1.2
+x=526 y=368.95 size=15 wt=500 fill=#303C42 anchor=end | 1.6
+x=526 y=340.2 size=15 wt=500 fill=#303C42 anchor=end | 2.0
+x=535.0 y=470.64 size=15.5 wt=500 fill=#E5DED2 anchor=middle | 0
+x=535.0 y=470.64 size=15.5 wt=500 fill=#303C42 anchor=middle | 0
+x=628.75 y=470.64 size=15.5 wt=500 fill=#E5DED2 anchor=middle | 50
+x=628.75 y=470.64 size=15.5 wt=500 fill=#303C42 anchor=middle | 50
+x=722.5 y=470.64 size=15.5 wt=500 fill=#E5DED2 anchor=middle | 100
+x=722.5 y=470.64 size=15.5 wt=500 fill=#303C42 anchor=middle | 100
+x=816.25 y=470.64 size=15.5 wt=500 fill=#E5DED2 anchor=middle | 150
+x=816.25 y=470.64 size=15.5 wt=500 fill=#303C42 anchor=middle | 150
+x=910.0 y=470.64 size=15.5 wt=500 fill=#E5DED2 anchor=middle | 200
+x=910.0 y=470.64 size=15.5 wt=500 fill=#303C42 anchor=middle | 200
+x=722.5 y=493.2 size=15 wt=500 fill=#E5DED2 anchor=middle | 时间 / s
+x=722.5 y=493.2 size=15 wt=500 fill=#303C42 anchor=middle | 时间 / s
+x=0 y=5.199999999999999 size=15 wt=500 fill=#303C42 anchor=middle | 深度 / m
+x=58 y=509.88 size=13.5 wt=500 fill=#E5DED2 anchor=start | 右：2026-04-25 蓝牙回传深度记录（两次剖面）。
+x=58 y=509.88 size=13.5 wt=500 fill=#303C42 anchor=start | 右：2026-04-25 蓝牙回传深度记录（两次剖面）。
+x=58 y=526.88 size=13.5 wt=500 fill=#E5DED2 anchor=start | 0.13 m 是到位判定容差，不代表实测控制精度
+x=58 y=526.88 size=13.5 wt=500 fill=#303C42 anchor=start | 0.13 m 是到位判定容差，不代表实测控制精度

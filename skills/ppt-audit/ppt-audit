@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""PPT audit script - validates layout and content quality."""
+import sys
+from pathlib import Path
+from pptx import Presentation
+
+def audit_deck(pptx_path):
+    """Run all audit checks on a PPTX file."""
+    prs = Presentation(pptx_path)
+
+    # Check 1: Slide count
+    total = len(prs.slides)
+    hidden = sum(1 for s in prs.slides if s.element.get("show") == "0")
+    print(f"✓ {total} slides, {hidden} hidden")
+
+    # Check 2: Font consistency
+    fonts = set()
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        if run.font.name:
+                            fonts.add(run.font.name)
+
+    if len(fonts) == 1 or (len(fonts) == 2 and "Noto Sans CJK SC" in list(fonts)[0]):
+        print(f"✓ Fonts: {', '.join(fonts)}")
+    else:
+        print(f"⚠ Multiple fonts found: {', '.join(fonts)}")
+
+    # Check 3: Text overflow (basic heuristic)
+    for i, slide in enumerate(prs.slides, 1):
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                text = shape.text
+                # Check for single-character orphans
+                if '\n' in text:
+                    lines = text.split('\n')
+                    for line in lines:
+                        if len(line.strip()) == 1 and line.strip() in '入准计护型':
+                            print(f"⚠ p{i:02d} possible orphan: '{line.strip()}'")
+
+    return True
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: ppt-audit <deck.pptx>")
+        sys.exit(1)
+
+    audit_deck(sys.argv[1])
